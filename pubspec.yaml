@@ -77,6 +77,8 @@ flutter:
     - assets/frenchFries.png
     - assets/sharma.png
     - assets/meatbox.png
+    - assets/chap.png
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:

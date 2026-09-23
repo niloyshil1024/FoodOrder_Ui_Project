@@ -14,15 +14,28 @@ class FoodDetailsScreen extends StatefulWidget {
 class _FoodDetailsScreenState extends State<FoodDetailsScreen> {
   int quantity = 1;
   final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
 
   @override
   void dispose() {
     _locationController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
   void _addToCart() {
     String location = _locationController.text.trim();
+    String customerName = _nameController.text.trim();
+
+    if (customerName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your name!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     if (location.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -36,7 +49,14 @@ class _FoodDetailsScreenState extends State<FoodDetailsScreen> {
 
     try {
       final cart = Provider.of<CartProvider>(context, listen: false);
-      cart.addToCart(widget.food, quantity: quantity, location: location);
+
+      // 🎯 প্রোভাইডারে নাম ও লোকেশন পাঠানো হচ্ছে
+      cart.addToCart(
+        widget.food,
+        quantity: quantity,
+        location: location,
+        userName: customerName,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -152,6 +172,26 @@ class _FoodDetailsScreenState extends State<FoodDetailsScreen> {
                   ],
                 ),
               ],
+            ),
+            const SizedBox(height: 15),
+            const Text(
+              "Customer Name",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                hintText: 'Enter your name...',
+                prefixIcon: const Icon(Icons.person, color: Color(0xFFFF5252)),
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+              ),
             ),
             const SizedBox(height: 15),
             const Text(

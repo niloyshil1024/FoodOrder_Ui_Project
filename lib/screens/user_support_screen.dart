@@ -13,6 +13,7 @@ class UserSupportScreen extends StatefulWidget {
 }
 
 class _UserSupportScreenState extends State<UserSupportScreen> {
+  final TextEditingController _nameController = TextEditingController(); // 👈 নামের কন্ট্রোলার
   final TextEditingController _msgController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   List messages = [];
@@ -21,6 +22,8 @@ class _UserSupportScreenState extends State<UserSupportScreen> {
   @override
   void initState() {
     super.initState();
+    // যদি আগে থেকেই নাম পাস হয়ে থাকে, তবে সেটি বক্সে বসিয়ে দিবে, না হলে খালি থাকবে
+    _nameController.text = widget.userName;
     fetchUserMessages();
   }
 
@@ -30,8 +33,13 @@ class _UserSupportScreenState extends State<UserSupportScreen> {
         Uri.parse("http://10.0.2.2/food_api/get_messages.php?user_id=${widget.userId}"),
       );
       if (response.statusCode == 200) {
+        final decodedData = jsonDecode(response.body);
         setState(() {
-          messages = jsonDecode(response.body);
+          if (decodedData is Map && decodedData.containsKey('data')) {
+            messages = decodedData['data'] ?? [];
+          } else if (decodedData is List) {
+            messages = decodedData;
+          }
         });
       }
     } catch (e) {
@@ -49,7 +57,7 @@ class _UserSupportScreenState extends State<UserSupportScreen> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'user_id': widget.userId,
-          'user_name': widget.userName,
+          'user_name': _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Guest User', // 👈 টেক্সট ফিল্ড থেকে নাম পাঠানো হচ্ছে
           'user_message': _msgController.text.trim(),
           'location': _locationController.text.trim(),
         }),
@@ -63,6 +71,12 @@ class _UserSupportScreenState extends State<UserSupportScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Message sent successfully!"), backgroundColor: Colors.green),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? "Failed to send message")),
           );
         }
       }
@@ -88,6 +102,16 @@ class _UserSupportScreenState extends State<UserSupportScreen> {
             color: Colors.grey.shade100,
             child: Column(
               children: [
+                // 🎯 নতুন নামের টেক্সট ফিল্ড
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: "Your Name",
+                    prefixIcon: Icon(Icons.person, color: Colors.red),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 TextField(
                   controller: _locationController,
                   decoration: const InputDecoration(
@@ -112,7 +136,9 @@ class _UserSupportScreenState extends State<UserSupportScreen> {
                   child: ElevatedButton(
                     onPressed: isLoading ? null : sendMessage,
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF4B4B)),
-                    child: const Text("Send to Admin", style: TextStyle(color: Colors.white)),
+                    child: isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text("Send to Admin", style: TextStyle(color: Colors.white)),
                   ),
                 )
               ],
@@ -126,21 +152,23 @@ class _UserSupportScreenState extends State<UserSupportScreen> {
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
-                // অ্যাডমিন রিপ্লাইয়ের সঠিক ফিল্ড চেক করা হচ্ছে
                 String adminReply = msg['admin_reply'] ?? '';
+                String location = msg['address'] ?? msg['location'] ?? 'N/A';
+                String messageText = msg['message'] ?? msg['user_message'] ?? '';
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("📍 Location: ${msg['address'] ?? msg['location'] ?? 'N/A'}",
+                        Text("📍 Location: $location",
                             style: const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
-                        Text("💬 You: ${msg['message'] ?? msg['user_message'] ?? ''}"),
+                        Text("💬 You: $messageText"),
                         const Divider(),
                         adminReply.isNotEmpty
                             ? Container(
