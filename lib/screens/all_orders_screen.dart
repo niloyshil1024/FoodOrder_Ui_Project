@@ -23,7 +23,6 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   Future<void> fetchOrders() async {
     setState(() => isLoading = true);
     try {
-      // 🎯 টাইমস্ট্যাম্প যোগ করা হলো যাতে আগের ক্যাশ করা ডাটা না আসে এবং সবসময় লাইভ ডাটা পায়
       final String url = '${Urls.baseUrl}/get_all_orders.php?t=${DateTime.now().millisecondsSinceEpoch}';
       final response = await http.get(Uri.parse(url));
 
@@ -47,7 +46,6 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   }
 
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
-    // সাথে সাথে UI আপডেট করার জন্য লোকাল স্টেট চেঞ্জ করা হলো
     setState(() {
       if (newStatus.toLowerCase() == 'cancelled') {
         ordersList.removeWhere((order) => order['id'].toString() == orderId);
@@ -87,14 +85,12 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
           backgroundColor: Colors.red,
         ),
       );
-      // সার্ভার এরর দিলে ডাটা রিলোড করে আগের অবস্থায় নিয়ে আসা
       fetchOrders();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // ফিল্টার করা হলো: Cancelled গুলো দেখাবে না
     final activeOrders = ordersList.where((order) {
       if (order == null || order['status'] == null) return false;
       String status = order['status'].toString().trim().toLowerCase();
@@ -144,11 +140,17 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
           itemBuilder: (context, index) {
             final order = activeOrders[index];
             String orderId = order['id']?.toString() ?? '';
-            String userName = order['user_name'] ?? order['name'] ?? 'Guest User';
-            String foodName = order['food_name'] ?? order['item_name'] ?? 'Food Item';
-            String total = order['total_price']?.toString() ?? order['price']?.toString() ?? '0.00';
+
+            // 🎯 শুধুমাত্র কাস্টমার বা ইউজারের নাম ফেচ করা (আইডি বাদ দিয়ে)
+            String userName = order['user_name'] ?? order['name'] ?? 'Customer';
+
+// 🎯 ডাটাবেজ বা পিএইচপি থেকে আসা ফুডের নাম বিভিন্ন ফিল্ড থেকে চেক করার ব্যবস্থা
+            String foodName = order['food_name'] ?? order['item_name'] ?? order['item'] ?? order['name'] ?? 'Food Item';            String total = order['total_price']?.toString() ?? order['price']?.toString() ?? '0.00';
             String address = order['address'] ?? 'No Address Provided';
             String status = order['status'] ?? 'Pending';
+
+            // 🎯 ডেটাবেজ থেকে ডেট ও টাইম ফেচ করা (created_at বা order_date)
+            String orderDate = order['created_at'] ?? order['order_date'] ?? '';
 
             Color statusColor = status.toLowerCase() == 'approved'
                 ? Colors.green
@@ -177,14 +179,16 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Order #$orderId - $userName',
+                          userName, // 👈 এখানে শুধু ইউজারের নাম দেখাবে
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                             color: Colors.black87,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -196,6 +200,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                           style: TextStyle(
                             color: statusColor,
                             fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
                         ),
                       ),
@@ -225,13 +230,27 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                             fontWeight: FontWeight.w500,
                             fontSize: 14,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
 
-                  // 🎯 শুধুমাত্র Pending থাকলে বাটন দেখাবে, Approved হয়ে গেলে বাটন হাইড হয়ে যাবে
+                  // 🎯 ডেট ও টাইম দেখানোর জন্য উইজেট
+                  if (orderDate.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Time: $orderDate',
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+
                   if (status.toLowerCase() == 'pending') ...[
                     const Divider(),
                     Row(

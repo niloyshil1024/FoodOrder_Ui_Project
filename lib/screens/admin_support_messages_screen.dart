@@ -26,10 +26,18 @@ class _AdminSupportScreenState extends State<AdminSupportScreen> {
         Uri.parse("http://10.0.2.2/food_api/get_support_messages.php"),
       );
       if (response.statusCode == 200) {
+        final decodedData = jsonDecode(response.body);
         setState(() {
-          supportMessages = jsonDecode(response.body);
+          // ব্যাকএন্ড থেকে ডেটা লিস্ট আকারে বা ম্যাপ আকারে আসলে তা হ্যান্ডেল করা
+          if (decodedData is Map && decodedData.containsKey('data')) {
+            supportMessages = decodedData['data'] ?? [];
+          } else if (decodedData is List) {
+            supportMessages = decodedData;
+          }
           isLoading = false;
         });
+      } else {
+        setState(() => isLoading = false);
       }
     } catch (e) {
       print("Error: $e");
@@ -37,7 +45,7 @@ class _AdminSupportScreenState extends State<AdminSupportScreen> {
     }
   }
 
-  // অ্যাডমিন কর্তৃক রিপ্লাই পাঠানোর ডায়ালগ ও ফাংশন
+  // অ্যাডমিন কর্তৃক রিপ্লাই পাঠানোর ডায়ালগ ও ফাংশন
   void showReplyDialog(String messageId) {
     final TextEditingController replyController = TextEditingController();
 
@@ -107,7 +115,7 @@ class _AdminSupportScreenState extends State<AdminSupportScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF4B4B)))
           : supportMessages.isEmpty
           ? const Center(child: Text("No support messages found!"))
           : ListView.builder(
@@ -115,8 +123,18 @@ class _AdminSupportScreenState extends State<AdminSupportScreen> {
         itemCount: supportMessages.length,
         itemBuilder: (context, index) {
           final msg = supportMessages[index];
-          String userName = msg['user_name'] ?? 'Unknown User';
-          String address = msg['address'] ?? 'N/A';
+
+          // 🎯 ইউজারের নাম বিভিন্ন সম্ভাব্য ফিল্ড চেক করে রিড করা যাতে 'User' বা 'Guest User' না দেখিয়ে আসল নাম দেখায়
+          String userName = 'Guest User';
+          if (msg['user_name'] != null && msg['user_name'].toString().trim().isNotEmpty && msg['user_name'].toString() != 'User') {
+            userName = msg['user_name'].toString();
+          } else if (msg['name'] != null && msg['name'].toString().trim().isNotEmpty) {
+            userName = msg['name'].toString();
+          } else if (msg['username'] != null && msg['username'].toString().trim().isNotEmpty) {
+            userName = msg['username'].toString();
+          }
+
+          String address = msg['address'] ?? msg['location'] ?? 'N/A';
           String message = msg['message'] ?? '';
           String adminReply = msg['admin_reply'] ?? '';
           String messageId = msg['id'].toString();
@@ -124,6 +142,7 @@ class _AdminSupportScreenState extends State<AdminSupportScreen> {
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             elevation: 3,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(

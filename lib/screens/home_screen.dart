@@ -121,8 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const MyOrdersScreen(userId: "1"),
-                ),
+                  builder: (context) => const MyOrdersScreen(),                ),
               );
             },
           ),
@@ -356,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                           ),
-                          // 💖 ফেভারিট বাটন আপডেট করা হয়েছে
+                          // 💖 ফেভারিট বাটন
                           IconButton(
                             icon: Icon(
                               food.isFavorite ? Icons.favorite : Icons.favorite_border,
@@ -368,30 +367,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               });
                             },
                           ),
+                          // 🛒 কার্ট বাটন (ক্লিক করলে ফুড ডিটেইলস পেজে নিয়ে যাবে, যাতে ইউজার নাম ও লোকেশন দিতে পারে)
                           IconButton(
                             icon: const Icon(
                               Icons.add_shopping_cart,
                               color: Colors.orangeAccent,
                             ),
                             onPressed: () {
-                              try {
-                                Provider.of<CartProvider>(context, listen: false)
-                                    .addToCart(food, location: 'Home Delivery');
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('$foodName added to cart!'),
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                              } catch (e) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const CartScreen(),
-                                  ),
-                                );
-                              }
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FoodDetailsScreen(food: food),
+                                ),
+                              );
                             },
                           ),
                         ],

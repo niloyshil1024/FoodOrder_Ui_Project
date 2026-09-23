@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 class CartItem {
   final dynamic food;
   int quantity;
-  final String location; // 👈 লোকেশন ফিল্ড যুক্ত করা হলো
+  final String location;
+  final String userName; // 👈 কাস্টমার নাম ফিল্ড যুক্ত করা হলো
 
   CartItem({
     required this.food,
     this.quantity = 1,
     required this.location,
+    required this.userName,
   });
 }
 
@@ -25,19 +27,19 @@ class CartProvider extends ChangeNotifier {
     return total;
   }
 
-  // 🎯 লোকেশনসহ কার্টে যোগ করার মেথড
-  void addToCart(dynamic food, {int quantity = 1, required String location}) {
-    int index = _cartItems.indexWhere((item) => item.food.id == food.id && item.location == location);
+  // 🎯 নাম এবং লোকেশনসহ কার্টে যোগ করার মেথড
+  void addToCart(dynamic food, {int quantity = 1, required String location, required String userName}) {
+    int index = _cartItems.indexWhere((item) => item.food.id == food.id && item.location == location && item.userName == userName);
     if (index != -1) {
       _cartItems[index].quantity += quantity;
     } else {
-      _cartItems.add(CartItem(food: food, quantity: quantity, location: location));
+      _cartItems.add(CartItem(food: food, quantity: quantity, location: location, userName: userName));
     }
     notifyListeners();
   }
 
-  void addItem(dynamic food, int quantity, String location) {
-    addToCart(food, quantity: quantity, location: location);
+  void addItem(dynamic food, int quantity, String location, String userName) {
+    addToCart(food, quantity: quantity, location: location, userName: userName);
   }
 
   void incrementQuantity(int index) {

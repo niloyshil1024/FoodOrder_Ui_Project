@@ -12,6 +12,7 @@ class Urls {
   static const String placeOrder = "$baseUrl/place_order.php";
   static const String getAllOrders = "$baseUrl/get_all_orders.php";
   static const String updateStatus = "$baseUrl/update_status.php";
+  static const String getUserOrders = "$baseUrl/get_user_orders.php";
 
   static const String dashboardStats = "$baseUrl/get_dashboard_stats.php";
   static const String getSupportMessages = "$baseUrl/get_support_messages.php";

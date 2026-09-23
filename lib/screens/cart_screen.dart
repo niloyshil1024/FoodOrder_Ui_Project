@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/cart_provider.dart';
+import '../providers/order_provider.dart';
 import '../utils/urls.dart';
 
 class CartScreen extends StatefulWidget {
@@ -16,10 +17,8 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   bool isPlacingOrder = false;
 
-  // SharedPreferences থেকে লগইন করা ইউজারের আসল আইডি নেওয়ার ফাংশন
   Future<String> getLoggedInUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    // আপনার লগইন করার সময় যে কি (key) দিয়ে আইডি সেভ করা হয়েছিল, যেমন 'user_id' বা 'id'
     return prefs.getString('user_id') ?? prefs.getInt('user_id')?.toString() ?? '1';
   }
 
@@ -97,6 +96,12 @@ class _CartScreenState extends State<CartScreen> {
                                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 3),
+                              // 🎯 ফুড ডিটেইলস থেকে আসা কাস্টমার নাম এখানে শো করবে
+                              Text(
+                                'Name: ${cartItem.userName}',
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54),
+                              ),
+                              const SizedBox(height: 2),
                               Row(
                                 children: [
                                   const Icon(Icons.location_on, size: 14, color: Colors.redAccent),
@@ -193,31 +198,22 @@ class _CartScreenState extends State<CartScreen> {
                         isPlacingOrder = true;
                       });
 
-                      // ডাইনামিক ইউজার আইডি ফেচ করা হলো
                       String currentUserId = await getLoggedInUserId();
-
                       bool allSuccess = true;
 
                       for (var item in cartItems) {
                         try {
-                          String finalLocation = item.location.trim().isNotEmpty
-                              ? item.location
-                              : 'Online Order';
-
-                          print("Sending Order -> User ID: $currentUserId, Food ID: ${item.food.id}, Qty: ${item.quantity}");
-
                           final response = await http.post(
                             Uri.parse(Urls.placeOrder),
                             body: {
-                              'user_id': currentUserId, // 👈 এখানে ফিক্সড '1' এর পরিবর্তে ডাইনামিক আইডি বসানো হলো
+                              'user_id': currentUserId,
+                              'customer_name': item.userName, // 👈 ফুড ডিটেইলস থেকে আসা নাম পাঠানো হচ্ছে
                               'food_id': item.food.id.toString(),
                               'quantity': item.quantity.toString(),
                               'price': item.food.price.toString(),
-                              'address': finalLocation,
+                              'address': item.location, // 👈 লোকেশন পাঠানো হচ্ছে
                             },
                           );
-
-                          print("Server Response: ${response.body}");
 
                           if (response.statusCode == 200) {
                             final resData = jsonDecode(response.body);
@@ -238,7 +234,25 @@ class _CartScreenState extends State<CartScreen> {
                       });
 
                       if (allSuccess) {
+                        final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+
+                        for (var item in cartItems) {
+                          String orderId = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+
+                          orderProvider.addOrder(
+                            OrderItem(
+                              id: orderId,
+                              userName: item.userName,
+                              item: item.food.name ?? 'Food Item',
+                              totalPrice: item.food.price * item.quantity,
+                              location: item.location,
+                              status: "Pending",
+                            ),
+                          );
+                        }
+
                         cartProvider.clearCart();
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Order placed successfully!'),
